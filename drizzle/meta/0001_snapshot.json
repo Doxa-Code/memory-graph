@@ -1,6 +1,6 @@
 {
-  "id": "eec2674c-4709-4572-abcc-1c6c686a80b5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "7b311068-d1e6-4b10-aa88-d70439260c6d",
+  "prevId": "eec2674c-4709-4572-abcc-1c6c686a80b5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -88,6 +88,108 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.memory-episode-edges": {
+      "name": "memory-episode-edges",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "episode_id": {
+          "name": "episode_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edge_id": {
+          "name": "edge_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "memory-episode-edges_episode_id_memory-episodes_id_fk": {
+          "name": "memory-episode-edges_episode_id_memory-episodes_id_fk",
+          "tableFrom": "memory-episode-edges",
+          "tableTo": "memory-episodes",
+          "columnsFrom": [
+            "episode_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "memory-episode-edges_edge_id_memory-edges_id_fk": {
+          "name": "memory-episode-edges_edge_id_memory-edges_id_fk",
+          "tableFrom": "memory-episode-edges",
+          "tableTo": "memory-edges",
+          "columnsFrom": [
+            "edge_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.memory-episodes": {
+      "name": "memory-episodes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message": {
+          "name": "message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

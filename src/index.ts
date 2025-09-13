@@ -1,21 +1,60 @@
-import { Graph } from "./graph";
+import { serve } from "bun";
+import { Message } from "./message";
 import { MemoryGraph } from "./memory-graph";
 
-const sessionId = "6552cc5c-f901-402d-b9a5-294b0ae999cc";
+serve({
+  port: 3000,
+  async fetch(req) {
+    const url = new URL(req.url);
 
-const memoryGraph = MemoryGraph.start(sessionId);
+    if (url.pathname === "/messages" && req.method === "POST") {
+      const body = await req.json();
+      const { role, content, sessionId } = body as {
+        role: Message.Role;
+        content: string;
+        sessionId: string;
+      };
 
-// --- Adiciona mensagens
-// await graphService.addMessage("Oi Fernando, tudo bem?", "assistant");
-// await graphService.addMessage("Estou com dor de cabeça", "user");
-// await graphService.addMessage("Quero dipirona", "user");
-// await graphService.addMessage("Tenho dipirona 1g pode ser?", "assistant");
+      if (!role || !content || !sessionId) {
+        return new Response(
+          JSON.stringify({
+            error: "role, sessionId e content são obrigatórios",
+          }),
+          { status: 400 }
+        );
+      }
 
-const result = await memoryGraph.search("remédio");
+      const memoryGraph = MemoryGraph.start(sessionId);
 
-if (result) {
-  console.log("Aresta mais próxima:", result.edge);
-  console.log("Nós conectados à primeira camada:", result.connectedNodes);
-} else {
-  console.log("Nenhuma aresta próxima encontrada.");
-}
+      await memoryGraph.addMessage(Message.create(role, content));
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (url.pathname === "/search" && req.method === "GET") {
+      const query = url.searchParams.get("q");
+      const sessionId = url.searchParams.get("sessionId");
+      if (!query || !sessionId) {
+        return new Response(
+          JSON.stringify({
+            error: "Query param 'q' e sessionId são obrigatórios",
+          }),
+          { status: 400 }
+        );
+      }
+      const memoryGraph = MemoryGraph.start(sessionId);
+
+      const results = await memoryGraph.search(query);
+
+      return new Response(JSON.stringify(results), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+});
+
+console.log("🚀 Server rodando em http://localhost:3000");

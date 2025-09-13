@@ -1,0 +1,1 @@
+ALTER TABLE "memory-nodes" ADD COLUMN "summary" text DEFAULT '' NOT NULL;

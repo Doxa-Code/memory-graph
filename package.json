@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "db:migrate": "bunx drizzle-kit migrate",
-    "db:generate": "bunx drizzle-kit generate"
+    "db:generate": "bunx drizzle-kit generate",
+    "dev": "bun run --watch src/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -26,6 +27,7 @@
     "ml-pca": "^4.1.1",
     "postgres": "^3.4.7",
     "redis": "^5.8.2",
+    "uuid": "^13.0.0",
     "zod": "^4.1.8"
   }
 }
