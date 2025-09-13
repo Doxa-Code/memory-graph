@@ -1,0 +1,31 @@
+{
+  "name": "memory-graph",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "db:migrate": "bunx drizzle-kit migrate",
+    "db:generate": "bunx drizzle-kit generate"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ai-sdk/azure": "^2.0.29",
+    "@ai-sdk/groq": "^2.0.18",
+    "@ai-sdk/openai": "^2.0.29",
+    "ai": "^5.0.42",
+    "dotenv": "^17.2.2",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.5",
+    "install": "^0.13.0",
+    "ioredis": "^5.7.0",
+    "ml-pca": "^4.1.1",
+    "postgres": "^3.4.7",
+    "redis": "^5.8.2",
+    "zod": "^4.1.8"
+  }
+}

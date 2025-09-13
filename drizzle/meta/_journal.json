@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1757735467691,
+      "tag": "0000_keen_kronos",
+      "breakpoints": true
+    }
+  ]
+}
