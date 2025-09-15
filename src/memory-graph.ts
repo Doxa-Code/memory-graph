@@ -1,409 +1,290 @@
-import { groq } from "@ai-sdk/groq";
-import { cosineSimilarity, generateObject } from "ai";
-import { desc, eq, inArray } from "drizzle-orm";
-import fs from "fs";
-import z from "zod";
 import crypto from "crypto";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { azureEmbeddings } from "./ai";
+import { EdgeExtractor } from "./ai/edges";
+import { NodeAttributesExtractor, NodeExtractor } from "./ai/nodes";
 import { createDatabaseConnection } from "./database";
 import {
   edges as edgesTable,
-  episodeEdges as episodeEdgesTable,
   episodes as episodesTable,
   nodes as nodesTable,
 } from "./database/schemas";
-import { resolve } from "path";
-import { Message } from "./message";
-import { Graph } from "./graph";
-import { Node } from "./node";
 import { Edge } from "./edge";
+import { Episode } from "./episode";
+import { Node } from "./node";
 
 export class MemoryGraph {
-  private static extractorPrompt = fs.readFileSync(
-    resolve("src/prompts/extractor-prompt.md"),
-    "utf-8"
-  );
-  private static SIMILARITY_THRESHOLD = 0.7;
+  constructor(private readonly groupId: string) {}
 
-  constructor(private readonly sessionId: string) {}
-
-  private async extractResources(message: Message) {
-    try {
-      const extraction = await generateObject({
-        model: groq("openai/gpt-oss-120b"),
-        messages: [
-          { role: "system", content: MemoryGraph.extractorPrompt },
-          {
-            role: message.role,
-            content: `${message.role}: ${message.content}`,
-          },
-        ],
-        providerOptions: { groq: { structuredOutput: true } },
-        schema: z.object({
-          entities: z.array(
-            z.object({
-              id: z.string(),
-              name: z.string(),
-              type: z.string(),
-              summary: z.string(),
-              properties: z.record(z.string(), z.any()),
-            })
-          ),
-          relationships: z.array(
-            z.object({
-              from: z.string(),
-              to: z.string(),
-              type: z.string(),
-              fact: z.string(),
-              episode: z.string(),
-            })
-          ),
-        }),
-      });
-      return extraction.object.entities.length ||
-        extraction.object.relationships.length
-        ? extraction.object
-        : null;
-    } catch (err) {
-      console.error("Erro ao extrair recursos:", err);
-      return null;
+  private async embedTexts(texts: string[]): Promise<number[][]> {
+    if (texts.length === 0) {
+      return [];
     }
-  }
-
-  private async embedText(text: string): Promise<number[]> {
     try {
       const result = await azureEmbeddings
         .textEmbeddingModel("text-embedding-3-small")
-        .doEmbed({ values: [text] });
-      return result.embeddings[0] as unknown as number[];
+        .doEmbed({ values: texts });
+      return result.embeddings as unknown as number[][];
     } catch (err) {
-      console.error("Erro ao gerar embedding:", err);
-      return [];
+      console.error("Erro ao gerar embeddings:", err);
+      return texts.map(() => [0]);
     }
   }
 
-  private async loadGraph(
-    sessionOnly = true,
-    nodeIds?: string[],
-    edgeIds?: string[]
-  ) {
-    const db = createDatabaseConnection();
-    const graph = Graph.create();
-
-    const nodeQuery = db
-      .select({
-        id: nodesTable.id,
-        type: nodesTable.type,
-        sessionId: nodesTable.sessionId,
-        label: nodesTable.label,
-        embedding: nodesTable.embedding,
-        summary: nodesTable.summary,
-        properties: nodesTable.properties,
-      })
-      .from(nodesTable);
-
-    if (sessionOnly) nodeQuery.where(eq(nodesTable.sessionId, this.sessionId));
-    if (nodeIds?.length) nodeQuery.where(inArray(nodesTable.id, nodeIds));
-
-    const allNodes = await nodeQuery;
-    for (const node of allNodes) {
-      graph.addNode(
-        Node.instance({
-          ...node,
-          properties: node.properties as Record<string, any>,
-        })
-      );
-    }
-
-    const edgeQuery = db
-      .select({
-        id: edgesTable.id,
-        from: edgesTable.from,
-        to: edgesTable.to,
-        label: edgesTable.label,
-        fact: edgesTable.fact,
-        sessionId: edgesTable.sessionId,
-        embedding: edgesTable.embedding,
-        invalid: edgesTable.invalid,
-        createdAt: edgesTable.createdAt,
-      })
-      .from(edgesTable);
-
-    if (sessionOnly) edgeQuery.where(eq(edgesTable.sessionId, this.sessionId));
-    if (edgeIds?.length) edgeQuery.where(inArray(edgesTable.id, edgeIds));
-
-    const allEdges = await edgeQuery;
-    for (const edge of allEdges) {
-      graph.addEdge(Edge.instance(edge));
-    }
-
-    return graph;
-  }
-
-  private async saveGraph(graph: Graph) {
+  private async saveGraphData(nodes: Node[], edges: Edge[]) {
     const db = createDatabaseConnection();
     await db.transaction(async (tx) => {
-      await Promise.all(
-        graph.getAllNodes().map((node) =>
-          tx
-            .insert(nodesTable)
-            .values({
-              id: node.id,
-              type: node.type,
-              sessionId: node.sessionId,
-              label: node.label,
-              embedding: node.embedding,
-              properties: node.properties,
-              summary: node.summary,
-            })
-            .onConflictDoUpdate({
-              target: nodesTable.id,
-              set: {
-                type: node.type,
-                sessionId: node.sessionId,
-                label: node.label,
-                embedding: node.embedding,
-                properties: node.properties,
-                summary: node.summary,
-              },
-            })
-        )
-      );
+      if (nodes.length > 0) {
+        await tx.insert(nodesTable).values(nodes).onConflictDoUpdate({
+          target: nodesTable.id,
+          set: {
+            name: sql`excluded.name`,
+            groupId: sql`excluded.group_id`,
+            summary: sql`excluded.summary`,
+            labels: sql`excluded.labels`,
+            embedding: sql`excluded.embedding`,
+          },
+        });
+      }
 
-      await Promise.all(
-        graph.edges.map((edge) =>
-          tx
-            .insert(edgesTable)
-            .values({
-              id: edge.id,
-              from: edge.from,
-              to: edge.to,
-              label: edge.label,
-              fact: edge.fact,
-              sessionId: edge.sessionId,
-              embedding: edge.embedding,
-              invalid: edge.invalid,
-              createdAt: edge.createdAt,
-            })
-            .onConflictDoUpdate({
-              target: edgesTable.id,
-              set: {
-                from: edge.from,
-                to: edge.to,
-                label: edge.label,
-                fact: edge.fact,
-                sessionId: edge.sessionId,
-                embedding: edge.embedding,
-                invalid: edge.invalid,
-                createdAt: edge.createdAt,
-              },
-            })
-        )
-      );
+      if (edges.length > 0) {
+        await tx.insert(edgesTable).values(edges).onConflictDoUpdate({
+          target: edgesTable.id,
+          set: {
+            sourceId: sql`excluded.source_id`,
+            targetId: sql`excluded.target_id`,
+            label: sql`excluded.label`,
+            fact: sql`excluded.fact`,
+            episodes: sql`excluded.episodes`,
+            invalidAt: sql`excluded.invalid_at`,
+            embedding: sql`excluded.embedding`,
+          },
+        });
+      }
     });
   }
 
-  async addMessage(message: Message) {
-    const history = await this.getHistory(10);
-    const episodeId = await this.saveEpisode(message);
+  private async getHistory(limit = 10): Promise<Episode[]> {
+    const db = createDatabaseConnection();
+    const rows = await db
+      .select()
+      .from(episodesTable)
+      .where(eq(episodesTable.groupId, this.groupId))
+      .orderBy(desc(episodesTable.createdAt))
+      .limit(limit);
 
-    const historyText = history
-      .map((h) => `${h.role}: ${h.message}`)
-      .join("\n");
-
-    const extraction = await this.extractResources(
-      Message.create(message.role, `${historyText}\n${message.content}`)
+    return rows.reverse().map((episode) =>
+      Episode.instance({
+        ...episode,
+        groupId: episode.groupId ?? "",
+        labels: episode.labels ?? [],
+      })
     );
+  }
 
-    if (!extraction) return;
-    const graph = await this.loadGraph();
+  private async findNodesByNames(names: string[]): Promise<Node[]> {
+    if (names.length === 0) {
+      return [];
+    }
+    const db = createDatabaseConnection();
+    const rows = await db
+      .select()
+      .from(nodesTable)
+      .where(
+        and(eq(nodesTable.groupId, this.groupId), inArray(nodesTable.name, names))
+      );
 
-    for (const entity of extraction.entities) {
-      const nodeText = `${entity.summary} ${JSON.stringify(entity.properties)}`;
-      const nodeEmbedding = await this.embedText(nodeText);
+    return rows.map((row) => Node.instance(row as Node.Props));
+  }
 
-      let existingNode = graph.getNode(entity.id);
+  private async processEpisode(episode: Episode) {
+    const history = await this.getHistory(10);
 
+    const extractedNodes = await NodeExtractor.instance().execute({
+      episode,
+      history,
+    });
+
+    const extractedNodeNames = extractedNodes.map((n) => n.name);
+    const existingNodes = await this.findNodesByNames(extractedNodeNames);
+    const existingNodesMap = new Map(existingNodes.map((n) => [n.name, n]));
+
+    const nodeMap = new Map<string, Node>();
+    const uniqueNodes: Node[] = [];
+    const processedNames = new Set<string>();
+
+    for (const extractedNode of extractedNodes) {
+      if (processedNames.has(extractedNode.name)) {
+        const finalNode = uniqueNodes.find(
+          (n) => n.name === extractedNode.name
+        )!;
+        nodeMap.set(extractedNode.id, finalNode);
+        continue;
+      }
+
+      const existingNode = existingNodesMap.get(extractedNode.name);
       if (existingNode) {
-        existingNode.label = entity.name;
-        existingNode.type = entity.type;
-        existingNode.embedding = nodeEmbedding;
-        existingNode.properties = entity.properties;
-        existingNode.summary = entity.summary;
+        nodeMap.set(extractedNode.id, existingNode);
+        uniqueNodes.push(existingNode);
       } else {
-        const node = Node.create(
-          entity.type,
-          this.sessionId,
-          entity.name,
-          nodeEmbedding,
-          entity.id
-        );
-        graph.addNode(node);
+        const newNode = Node.create({
+          name: extractedNode.name,
+          groupId: this.groupId,
+          labels: extractedNode.labels,
+          summary: extractedNode.summary,
+        });
+        nodeMap.set(extractedNode.id, newNode);
+        uniqueNodes.push(newNode);
       }
+      processedNames.add(extractedNode.name);
     }
 
-    for (const rel of extraction.relationships) {
-      let fromNode =
-        graph.getNode(rel.from) ||
-        Node.create("unknown", this.sessionId, rel.from, undefined, rel.from);
-      graph.addNode(fromNode);
+    const [extractedEdges, updatedNodes] = await Promise.all([
+      EdgeExtractor.instance().execute({
+        episode,
+        history,
+        extractedNodes,
+      }),
+      NodeAttributesExtractor.instance().execute({
+        episode,
+        history,
+        nodes: uniqueNodes,
+      }),
+    ]);
 
-      let toNode =
-        graph.getNode(rel.to) ||
-        Node.create("unknown", this.sessionId, rel.to, undefined, rel.to);
-      graph.addNode(toNode);
+    const finalEdges = extractedEdges
+      .map((edge) => {
+        const sourceNode = nodeMap.get(edge.sourceId);
+        const targetNode = nodeMap.get(edge.targetId);
 
-      const edgeEmbedding = await this.embedText(rel.fact);
-      const edge = Edge.create({
-        sessionId: this.sessionId,
-        from: fromNode.id,
-        to: toNode.id,
-        label: rel.type,
-        fact: rel.fact,
-        embedding: edgeEmbedding,
-      });
-
-      for (const existingEdge of graph.edges) {
-        if (!existingEdge.embedding || existingEdge.invalid) continue;
-        if (
-          cosineSimilarity(existingEdge.embedding, edgeEmbedding) >
-          MemoryGraph.SIMILARITY_THRESHOLD
-        ) {
-          existingEdge.invalidate();
+        if (!sourceNode || !targetNode) {
+          console.warn(
+            `Could not find nodes for edge: ${edge.id}. Source: ${edge.sourceId}, Target: ${edge.targetId}. Skipping edge.`
+          );
+          return null;
         }
+
+        return Edge.create({
+          ...edge,
+          sourceId: sourceNode.id,
+          targetId: targetNode.id,
+          episodes: [episode.id],
+        });
+      })
+      .filter((e): e is Edge => e !== null);
+
+    const edgeFacts = finalEdges.map((e) => e.fact);
+    const nodeNames = updatedNodes.map((n) => n.name);
+
+    const [edgeEmbeddings, nodeEmbeddings] = await Promise.all([
+      this.embedTexts(edgeFacts),
+      this.embedTexts(nodeNames),
+    ]);
+
+    finalEdges.forEach((edge, i) => {
+      if (edgeEmbeddings[i]) {
+        edge.setEmbedding(edgeEmbeddings[i]);
       }
+    });
 
-      graph.addEdge(edge);
+    updatedNodes.forEach((node, i) => {
+      if (nodeEmbeddings[i]) {
+        node.setEmbedding(nodeEmbeddings[i]);
+      }
+    });
 
-      await this.saveGraph(graph);
+    await this.saveGraphData(updatedNodes, finalEdges);
+  }
 
-      const db = createDatabaseConnection();
-      await db.insert(episodeEdgesTable).values({
-        id: crypto.randomUUID(),
-        episodeId,
-        edgeId: edge.id,
-      });
-    }
+  async addEpisode(episodeCreateProps: Episode.CreateProps) {
+    const episode = Episode.create(episodeCreateProps);
+    const db = createDatabaseConnection();
+
+    await db.insert(episodesTable).values(episode).onConflictDoUpdate({
+      target: episodesTable.id,
+      set: {
+        content: episode.content,
+        createdAt: episode.createdAt,
+        description: episode.description,
+        groupId: episode.groupId,
+        labels: episode.labels,
+        name: episode.name,
+        type: episode.type,
+      },
+    });
+
+    // Process the episode in the background
+    (async () => {
+      try {
+        await this.processEpisode(episode);
+      } catch (error) {
+        console.error("Error processing episode in background:", error);
+      }
+    })();
   }
 
   async search(query: string, topK = 10) {
-    const queryEmbedding = await this.embedText(query);
+    const queryEmbedding = await this.embedTexts([query]);
+    const history = await this.getHistory(3);
+    const orderedHistory = history;
     const db = createDatabaseConnection();
 
-    // Busca todos edges do sessionId
-    const edges = await db
-      .select({
-        id: edgesTable.id,
-        from: edgesTable.from,
-        to: edgesTable.to,
-        label: edgesTable.label,
-        fact: edgesTable.fact,
-        sessionId: edgesTable.sessionId,
-        embedding: edgesTable.embedding,
-        invalid: edgesTable.invalid,
-        createdAt: edgesTable.createdAt, // assume que tenha timestamp
-      })
+    const edgesRaw = await db
+      .select()
       .from(edgesTable)
-      .where(eq(edgesTable.sessionId, this.sessionId));
+      .where(
+        and(
+          eq(edgesTable.groupId, this.groupId),
+          sql`embedding <> ${JSON.stringify(queryEmbedding[0], null, 2)}`,
+          isNull(edgesTable.invalidAt)
+        )
+      )
+      .limit(topK);
 
-    // Calcula similaridade e pega os topK
-    const scoredEdges = edges
-      .filter((e) => e.embedding && !e.invalid)
-      .map((e) => ({
-        edge: Edge.instance(e),
-        score: cosineSimilarity(queryEmbedding, e.embedding),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, topK);
+    const nodesRaw = await db
+      .select()
+      .from(nodesTable)
+      .where(
+        and(
+          eq(nodesTable.groupId, this.groupId),
+          sql`embedding <> ${JSON.stringify(queryEmbedding[0], null, 2)}`
+        )
+      )
+      .limit(topK);
 
-    if (!scoredEdges.length) return { result: "", nodes: [] };
-
-    // Carrega nodes relacionados
-    const nodeIds = Array.from(
-      new Set(scoredEdges.flatMap((se) => [se.edge.from, se.edge.to]))
+    const nodes = nodesRaw.map((n) =>
+      Node.instance({
+        ...n,
+        embedding: n.embedding || [],
+      })
     );
-    const graph = await this.loadGraph(false, nodeIds);
+    const edges = edgesRaw.map((e) => Edge.instance(e));
 
-    // Mapa de nodes para entidades
-    const entitiesMap = new Map<string, Node>();
-    for (const nodeId of nodeIds) {
-      const node = graph.getNode(nodeId);
-      if (node) entitiesMap.set(nodeId, node);
-    }
-
-    // Monta a lista de FACTS
-    const facts = scoredEdges.map((se) => {
-      const dateRange = se.edge.createdAt
-        ? `${se.edge.createdAt.toISOString()} - present`
+    const facts = edges.map((se) => {
+      const dateRange = se.validAt
+        ? `${se.validAt.toISOString()} - present`
         : "date unknown - present";
-      return `- ${se.edge.fact} (Date range: ${dateRange})`;
+      return `- ${se.fact} (Date range: ${dateRange})`;
     });
 
-    // Monta a lista de ENTITIES
-    const entities = Array.from(entitiesMap.values()).map((node) => {
-      const attrs = node.properties
-        ? Object.entries(node.properties)
-            .map(([k, v]) => `  ${k}: ${v}`)
-            .join("\n")
-        : "";
-      return [
-        `- Name: ${node.label || node.id}`,
-        attrs ? `  Attributes:\n${attrs}` : "",
-        `  Summary: ${node.summary || node.label || node.id}`,
-      ]
+    const entities = nodes.map((node) => {
+      return [`- Name: ${node.name || node.id}`, `- Summary: ${node.summary}`]
         .filter(Boolean)
         .join("\n");
     });
 
-    // Formata saída
-    const resultMarkdown = [
-      "# These are the most relevant facts and their valid date ranges",
-      "<FACTS>",
-      facts.join("\n"),
-      "</FACTS>",
-      "",
-      "# These are the most relevant entities",
-      "<ENTITIES>",
-      entities.join("\n"),
-      "</ENTITIES>",
-    ].join("\n");
-
     return {
-      result: resultMarkdown,
-      facts,
-      entities: Array.from(entitiesMap.values()),
+      result: [
+        "# Recent conversation history",
+        orderedHistory.map((h) => h.content).join("\n"),
+        "",
+        "# Relevant facts",
+        facts.join("\n"),
+        "",
+        "# Relevant entities",
+        entities.join("\n"),
+      ].join("\n"),
     };
-  }
-
-  private async saveEpisode(message: Message) {
-    const db = createDatabaseConnection();
-    const episodeId = crypto.randomUUID();
-
-    await db.insert(episodesTable).values({
-      id: episodeId,
-      sessionId: this.sessionId,
-      message: message.content,
-      role: message.role,
-    });
-
-    return episodeId;
-  }
-
-  private async getHistory(limit = 10) {
-    const db = createDatabaseConnection();
-    const rows = await db
-      .select({
-        id: episodesTable.id,
-        message: episodesTable.message,
-        role: episodesTable.role,
-        createdAt: episodesTable.createdAt,
-      })
-      .from(episodesTable)
-      .where(eq(episodesTable.sessionId, this.sessionId))
-      .orderBy(desc(episodesTable.createdAt))
-      .limit(limit);
-
-    return rows.reverse();
   }
 
   static start(sessionId?: string) {

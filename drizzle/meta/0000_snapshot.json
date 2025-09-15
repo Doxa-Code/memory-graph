@@ -1,11 +1,11 @@
 {
-  "id": "eec2674c-4709-4572-abcc-1c6c686a80b5",
+  "id": "ab790e63-5fb6-41da-90fa-1efd5926955c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.memory-edges": {
-      "name": "memory-edges",
+    "public.memory-episodes": {
+      "name": "memory-episodes",
       "schema": "",
       "columns": {
         "id": {
@@ -14,95 +14,23 @@
           "primaryKey": true,
           "notNull": true
         },
-        "from": {
-          "name": "from",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "to": {
-          "name": "to",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
-        "label": {
-          "name": "label",
-          "type": "text",
+        "labels": {
+          "name": "labels",
+          "type": "text[]",
           "primaryKey": false,
-          "notNull": true
-        },
-        "fact": {
-          "name": "fact",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "embedding": {
-          "name": "embedding",
-          "type": "vector(1536)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "invalid": {
-          "name": "invalid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "memory-edges_from_memory-nodes_id_fk": {
-          "name": "memory-edges_from_memory-nodes_id_fk",
-          "tableFrom": "memory-edges",
-          "tableTo": "memory-nodes",
-          "columnsFrom": [
-            "from"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "memory-edges_to_memory-nodes_id_fk": {
-          "name": "memory-edges_to_memory-nodes_id_fk",
-          "tableFrom": "memory-edges",
-          "tableTo": "memory-nodes",
-          "columnsFrom": [
-            "to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.memory-nodes": {
-      "name": "memory-nodes",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
+          "notNull": false
         },
         "type": {
           "name": "type",
@@ -110,24 +38,24 @@
           "primaryKey": false,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "content": {
+          "name": "content",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "label": {
-          "name": "label",
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "embedding": {
-          "name": "embedding",
-          "type": "vector(1536)",
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
-          "default": []
+          "default": "now()"
         }
       },
       "indexes": {},

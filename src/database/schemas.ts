@@ -1,52 +1,40 @@
-import {
-  boolean,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  vector,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, vector } from "drizzle-orm/pg-core";
+import type { Episode } from "../episode";
 
 export const episodes = pgTable("memory-episodes", {
   id: text("id").primaryKey(),
-  sessionId: text("session_id").notNull(),
-  message: text("message").notNull(),
-  role: text("role").notNull(),
+  name: text("name").notNull(),
+  groupId: text("group_id").notNull(),
+  labels: text("labels").array().notNull(),
+  type: text("type").$type<Episode.Type>().notNull(),
+  content: text("content").notNull(),
+  description: text("description").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const episodeEdges = pgTable("memory-episode-edges", {
-  id: text("id").primaryKey(),
-  episodeId: text("episode_id")
-    .notNull()
-    .references(() => episodes.id, { onDelete: "cascade" }),
-  edgeId: text("edge_id")
-    .notNull()
-    .references(() => edges.id, { onDelete: "cascade" }),
 });
 
 export const nodes = pgTable("memory-nodes", {
   id: text("id").primaryKey(),
-  type: text("type").notNull(),
-  sessionId: text("session_id").notNull(),
-  label: text("label").notNull(),
-  embedding: vector("embedding", { dimensions: 1536 }).notNull().default([]),
-  properties: jsonb("properties").notNull().default({}),
-  summary: text("summary").notNull().default(""),
+  name: text("name").notNull(),
+  groupId: text("group_id").notNull(),
+  summary: text("summary").notNull(),
+  labels: text("labels").array().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(),
 });
 
 export const edges = pgTable("memory-edges", {
   id: text("id").primaryKey(),
-  from: text("from")
+  groupId: text("group_id").notNull(),
+  sourceId: text("source_id")
     .notNull()
     .references(() => nodes.id, { onDelete: "cascade" }),
-  to: text("to")
+  targetId: text("target_id")
     .notNull()
     .references(() => nodes.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   fact: text("fact").notNull().default(""),
-  sessionId: text("session_id").notNull(),
+  episodes: text("episodes").array().notNull(),
+  validAt: timestamp("valid_at").defaultNow().notNull(),
+  invalidAt: timestamp("invalid_at"),
   embedding: vector("embedding", { dimensions: 1536 }).notNull(),
-  invalid: boolean("invalid").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

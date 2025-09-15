@@ -1,157 +1,9 @@
 {
-  "id": "7b311068-d1e6-4b10-aa88-d70439260c6d",
-  "prevId": "eec2674c-4709-4572-abcc-1c6c686a80b5",
+  "id": "98c3f97b-af22-48f0-a4d9-e95db12a3239",
+  "prevId": "ab790e63-5fb6-41da-90fa-1efd5926955c",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.memory-edges": {
-      "name": "memory-edges",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "from": {
-          "name": "from",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "to": {
-          "name": "to",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fact": {
-          "name": "fact",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "embedding": {
-          "name": "embedding",
-          "type": "vector(1536)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "invalid": {
-          "name": "invalid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "memory-edges_from_memory-nodes_id_fk": {
-          "name": "memory-edges_from_memory-nodes_id_fk",
-          "tableFrom": "memory-edges",
-          "tableTo": "memory-nodes",
-          "columnsFrom": [
-            "from"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "memory-edges_to_memory-nodes_id_fk": {
-          "name": "memory-edges_to_memory-nodes_id_fk",
-          "tableFrom": "memory-edges",
-          "tableTo": "memory-nodes",
-          "columnsFrom": [
-            "to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.memory-episode-edges": {
-      "name": "memory-episode-edges",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "episode_id": {
-          "name": "episode_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "edge_id": {
-          "name": "edge_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "memory-episode-edges_episode_id_memory-episodes_id_fk": {
-          "name": "memory-episode-edges_episode_id_memory-episodes_id_fk",
-          "tableFrom": "memory-episode-edges",
-          "tableTo": "memory-episodes",
-          "columnsFrom": [
-            "episode_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "memory-episode-edges_edge_id_memory-edges_id_fk": {
-          "name": "memory-episode-edges_edge_id_memory-edges_id_fk",
-          "tableFrom": "memory-episode-edges",
-          "tableTo": "memory-edges",
-          "columnsFrom": [
-            "edge_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.memory-episodes": {
       "name": "memory-episodes",
       "schema": "",
@@ -162,20 +14,38 @@
           "primaryKey": true,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "message": {
-          "name": "message",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "role": {
-          "name": "role",
+        "labels": {
+          "name": "labels",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -206,30 +76,36 @@
           "primaryKey": true,
           "notNull": true
         },
-        "type": {
-          "name": "type",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "label": {
-          "name": "label",
-          "type": "text",
+        "labels": {
+          "name": "labels",
+          "type": "text[]",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "embedding": {
           "name": "embedding",
           "type": "vector(1536)",
           "primaryKey": false,
-          "notNull": true,
-          "default": []
+          "notNull": false
         }
       },
       "indexes": {},

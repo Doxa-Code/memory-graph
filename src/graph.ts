@@ -5,14 +5,18 @@ export class Graph {
   nodes: Map<string, Node> = new Map();
   edges: Edge[] = [];
 
-  addNode(node: Node) {
-    if (!this.nodes.has(node.id)) {
-      this.nodes.set(node.id, node);
+  addNode(...nodes: Node[]) {
+    for (const node of nodes) {
+      if (!this.nodes.has(node.id)) {
+        this.nodes.set(node.id, node);
+      }
     }
   }
 
-  addEdge(edge: Edge) {
-    this.edges.push(edge);
+  addEdge(...edges: Edge[]) {
+    for (const edge of edges) {
+      this.edges.push(edge);
+    }
   }
 
   getNode(id: string) {
@@ -25,15 +29,19 @@ export class Graph {
 
   getConnectedNodes(nodeId: string) {
     return this.edges
-      .filter((e) => e.from === nodeId || e.to === nodeId)
+      .filter((e) => e.sourceId === nodeId || e.targetId === nodeId)
       .map((e) =>
-        e.from === nodeId ? this.getNode(e.to) : this.getNode(e.from)
+        e.sourceId === nodeId
+          ? this.getNode(e.targetId)
+          : this.getNode(e.sourceId)
       )
       .filter((n): n is Node => !!n);
   }
 
   getEdgesFromNode(nodeId: string) {
-    return this.edges.filter((e) => e.from === nodeId || e.to === nodeId);
+    return this.edges.filter(
+      (e) => e.sourceId === nodeId || e.targetId === nodeId
+    );
   }
 
   static create() {

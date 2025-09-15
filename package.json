@@ -6,10 +6,11 @@
   "scripts": {
     "db:migrate": "bunx drizzle-kit migrate",
     "db:generate": "bunx drizzle-kit generate",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/server.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/ejs": "^3.1.5"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -22,6 +23,7 @@
     "dotenv": "^17.2.2",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.5",
+    "ejs": "^3.1.10",
     "install": "^0.13.0",
     "ioredis": "^5.7.0",
     "ml-pca": "^4.1.1",

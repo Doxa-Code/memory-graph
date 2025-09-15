@@ -1,57 +1,62 @@
-import crypto from "crypto";
-
-namespace Node {
+export namespace Node {
   export interface Props {
     id: string;
-    type: string;
-    sessionId: string;
-    label: string;
-    embedding: number[];
-    properties: Record<string, any>;
+    name: string;
+    groupId: string;
     summary: string;
+    labels: string[];
+    createdAt: Date;
+    embedding: number[];
+  }
+
+  export interface CreateProps {
+    name: string;
+    groupId: string;
+    summary?: string;
+    labels?: string[];
   }
 }
 
 export class Node {
-  id: string;
-  type: string;
-  sessionId: string;
-  label: string;
-  embedding: number[];
-  properties: Record<string, any>;
-  summary: string;
+  public id: string;
+  public name: string;
+  public groupId: string;
+  public labels: string[];
+  public summary: string;
+  public createdAt: Date;
+  public embedding: number[];
 
   constructor(props: Node.Props) {
     this.id = props.id;
-    this.type = props.type;
-    this.sessionId = props.sessionId;
-    this.label = props.label;
-    this.embedding = props.embedding;
-    this.properties = props.properties || {};
+    this.name = props.name;
+    this.groupId = props.groupId;
+    this.labels = props.labels;
+    this.createdAt = props.createdAt;
     this.summary = props.summary;
+    this.embedding = props.embedding;
   }
 
   static instance(props: Node.Props) {
     return new Node(props);
   }
 
-  static create(
-    type: string,
-    sessionId: string,
-    label: string,
-    embedding?: number[],
-    id?: string,
-    properties?: Record<string, any>,
-    summary?: string
-  ) {
+  addSummary(summary: string) {
+    this.summary = summary;
+  }
+
+  setEmbedding(embedding: number[]) {
+    this.embedding = embedding;
+  }
+
+  static create(props: Node.CreateProps) {
     return new Node({
-      id: id || crypto.randomUUID().toString(),
-      type,
-      sessionId,
-      label,
-      embedding: embedding || [],
-      properties: properties || {},
-      summary: summary || "",
+      id: crypto.randomUUID().toString(),
+      createdAt: new Date(),
+      groupId: props.groupId ?? "",
+      labels: props.labels ?? [],
+      name: props.name,
+      summary: props.summary ?? "",
+      embedding: [],
     });
   }
 }

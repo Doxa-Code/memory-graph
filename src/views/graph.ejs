@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Memory Graph</title>
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/vis-network@9.1.2/standalone/umd/vis-network.min.js"
+    ></script>
+    <link
+      href="https://unpkg.com/vis-network/styles/vis-network.css"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #1e1e1e;
+        color: #fff;
+      }
+
+      h1 {
+        text-align: center;
+        margin: 20px 0;
+      }
+
+      #graph {
+        width: 100%;
+        height: 90vh;
+        border: 1px solid #444;
+        background-color: #121212;
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Memory Graph</h1>
+    <div id="graph"></div>
+
+    <script>
+      const nodesData = <%- JSON.stringify(nodes) %>;
+      const edgesData = <%- JSON.stringify(edges) %>;
+
+      const nodes = nodesData.map(node => ({
+        id: node.id,
+        label: node.name,
+        shape: 'circle',
+        color: { background: '#9C27B0', border: '#7B1FA2', highlight: { background: '#BA68C8', border: '#E1BEE7' } },
+        font: { color: '#fff', size: 14 },
+        margin: 10
+      }));
+
+      const edges = edgesData.map(edge => ({
+        from: edge.sourceId,
+        to: edge.targetId,
+        label: edge.label || "",
+        color: { color: '#888', highlight: '#fff' },
+        font: { color: '#fff', size: 12, align: 'top' },
+        smooth: { type: 'dynamic' }
+      }));
+
+      const container = document.getElementById('graph');
+      const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+
+      const options = {
+        layout: { improvedLayout: true },
+        physics: {
+          enabled: true,
+          solver: 'repulsion',
+          repulsion: { nodeDistance: 300, centralGravity: 0.7 },
+          stabilization: { iterations: 300 }
+        },
+        interaction: { hover: true, multiselect: true, navigationButtons: true, dragNodes: true },
+        edges: { arrows: { to: true } }
+      };
+
+      const network = new vis.Network(container, data, options);
+
+      // Fixar nós depois de arrastar
+      network.on("dragEnd", function(params) {
+        params.nodes.forEach(nodeId => {
+          network.body.data.nodes.update({id: nodeId, fixed: {x:true, y:true}});
+        });
+      });
+
+      // Desabilitar física depois de estabilizar
+      network.once("stabilizationIterationsDone", function() {
+        network.setOptions({ physics: false });
+      });
+    </script>
+  </body>
+</html>

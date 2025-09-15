@@ -1,6 +1,6 @@
 {
-  "id": "b585d162-5c24-48bd-8b14-e61924c8ee3e",
-  "prevId": "7b311068-d1e6-4b10-aa88-d70439260c6d",
+  "id": "32850835-75eb-43f7-bc65-ecf95875d6cf",
+  "prevId": "98c3f97b-af22-48f0-a4d9-e95db12a3239",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -14,14 +14,20 @@
           "primaryKey": true,
           "notNull": true
         },
-        "from": {
-          "name": "from",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "to": {
-          "name": "to",
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_id": {
+          "name": "target_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -39,41 +45,40 @@
           "notNull": true,
           "default": "''"
         },
-        "session_id": {
-          "name": "session_id",
-          "type": "text",
+        "episodes": {
+          "name": "episodes",
+          "type": "text[]",
           "primaryKey": false,
           "notNull": true
+        },
+        "valid_at": {
+          "name": "valid_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "invalid_at": {
+          "name": "invalid_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "embedding": {
           "name": "embedding",
           "type": "vector(1536)",
           "primaryKey": false,
           "notNull": true
-        },
-        "invalid": {
-          "name": "invalid",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "memory-edges_from_memory-nodes_id_fk": {
-          "name": "memory-edges_from_memory-nodes_id_fk",
+        "memory-edges_source_id_memory-nodes_id_fk": {
+          "name": "memory-edges_source_id_memory-nodes_id_fk",
           "tableFrom": "memory-edges",
           "tableTo": "memory-nodes",
           "columnsFrom": [
-            "from"
+            "source_id"
           ],
           "columnsTo": [
             "id"
@@ -81,70 +86,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "memory-edges_to_memory-nodes_id_fk": {
-          "name": "memory-edges_to_memory-nodes_id_fk",
+        "memory-edges_target_id_memory-nodes_id_fk": {
+          "name": "memory-edges_target_id_memory-nodes_id_fk",
           "tableFrom": "memory-edges",
           "tableTo": "memory-nodes",
           "columnsFrom": [
-            "to"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.memory-episode-edges": {
-      "name": "memory-episode-edges",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "episode_id": {
-          "name": "episode_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "edge_id": {
-          "name": "edge_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "memory-episode-edges_episode_id_memory-episodes_id_fk": {
-          "name": "memory-episode-edges_episode_id_memory-episodes_id_fk",
-          "tableFrom": "memory-episode-edges",
-          "tableTo": "memory-episodes",
-          "columnsFrom": [
-            "episode_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "memory-episode-edges_edge_id_memory-edges_id_fk": {
-          "name": "memory-episode-edges_edge_id_memory-edges_id_fk",
-          "tableFrom": "memory-episode-edges",
-          "tableTo": "memory-edges",
-          "columnsFrom": [
-            "edge_id"
+            "target_id"
           ],
           "columnsTo": [
             "id"
@@ -169,20 +116,38 @@
           "primaryKey": true,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "message": {
-          "name": "message",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "role": {
-          "name": "role",
+        "labels": {
+          "name": "labels",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -213,37 +178,42 @@
           "primaryKey": true,
           "notNull": true
         },
-        "type": {
-          "name": "type",
+        "name": {
+          "name": "name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "session_id": {
-          "name": "session_id",
+        "group_id": {
+          "name": "group_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "label": {
-          "name": "label",
+        "summary": {
+          "name": "summary",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "labels": {
+          "name": "labels",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         },
         "embedding": {
           "name": "embedding",
           "type": "vector(1536)",
           "primaryKey": false,
-          "notNull": true,
-          "default": []
-        },
-        "properties": {
-          "name": "properties",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
+          "notNull": true
         }
       },
       "indexes": {},

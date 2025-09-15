@@ -3,51 +3,60 @@ import crypto from "crypto";
 namespace Edge {
   export interface Props {
     id: string;
-    sessionId: string;
-    from: string;
-    to: string;
+    groupId: string;
+    sourceId: string;
+    targetId: string;
     label: string;
     fact: string;
-    invalid: boolean;
+    episodes: string[];
+    validAt: Date;
+    invalidAt: Date | null;
     embedding: number[];
-    createdAt: Date;
   }
 
   export interface CreateProps {
-    sessionId: string;
-    from: string;
-    to: string;
+    groupId: string;
+    sourceId: string;
+    targetId: string;
     label: string;
     fact: string;
-    embedding: number[];
+    episodes: string[];
+    validAt: Date;
+    invalidAt: Date | null;
   }
 }
 
 export class Edge {
-  id: string;
-  sessionId: string;
-  from: string;
-  to: string;
-  label: string;
-  fact: string;
-  invalid: boolean;
-  embedding: number[];
-  createdAt: Date;
+  public id: string;
+  public groupId: string;
+  public sourceId: string;
+  public targetId: string;
+  public label: string;
+  public fact: string;
+  public episodes: string[];
+  public validAt: Date;
+  public invalidAt: Date | null;
+  public embedding: number[];
 
   constructor(props: Edge.Props) {
     this.id = props.id;
-    this.sessionId = props.sessionId;
-    this.from = props.from;
-    this.to = props.to;
+    this.groupId = props.groupId;
+    this.sourceId = props.sourceId;
+    this.targetId = props.targetId;
     this.label = props.label;
     this.fact = props.fact;
-    this.invalid = props.invalid;
+    this.episodes = props.episodes;
+    this.validAt = props.validAt;
+    this.invalidAt = props.invalidAt;
     this.embedding = props.embedding;
-    this.createdAt = props.createdAt;
   }
 
   invalidate() {
-    this.invalid = true;
+    this.invalidAt = new Date();
+  }
+
+  setEmbedding(embedding: number[]) {
+    this.embedding = embedding;
   }
 
   static instance(props: Edge.Props) {
@@ -56,15 +65,16 @@ export class Edge {
 
   static create(props: Edge.CreateProps) {
     return new Edge({
-      id: crypto.randomUUID().toString(),
-      sessionId: props.sessionId,
-      from: props.from,
-      to: props.to,
-      label: props.label,
+      episodes: props.episodes || [],
       fact: props.fact,
-      embedding: props.embedding,
-      invalid: false,
-      createdAt: new Date(),
+      groupId: props.groupId,
+      id: crypto.randomUUID().toString(),
+      invalidAt: props.invalidAt || null,
+      label: props.label,
+      sourceId: props.sourceId,
+      targetId: props.targetId,
+      validAt: props.validAt || new Date(),
+      embedding: [],
     });
   }
 }
