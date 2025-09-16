@@ -6,7 +6,8 @@
   "scripts": {
     "db:migrate": "bunx drizzle-kit migrate",
     "db:generate": "bunx drizzle-kit generate",
-    "dev": "bun run --watch src/server.ts"
+    "dev": "bun run --watch src/server.ts",
+    "build": "docker run --platform=linux/amd64 --rm -v $(pwd):/app -w /app oven/bun:latest bun build ./src/server.ts --compile --outfile ./server"
   },
   "devDependencies": {
     "@types/bun": "latest",

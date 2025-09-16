@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 import { serve } from "bun";
 import { readFileSync } from "fs";
 import { resolve } from "path";
