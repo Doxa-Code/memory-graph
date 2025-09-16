@@ -35,31 +35,37 @@ export class MemoryGraph {
     const db = createDatabaseConnection();
     await db.transaction(async (tx) => {
       if (nodes.length > 0) {
-        await tx.insert(nodesTable).values(nodes).onConflictDoUpdate({
-          target: nodesTable.id,
-          set: {
-            name: sql`excluded.name`,
-            groupId: sql`excluded.group_id`,
-            summary: sql`excluded.summary`,
-            labels: sql`excluded.labels`,
-            embedding: sql`excluded.embedding`,
-          },
-        });
+        await tx
+          .insert(nodesTable)
+          .values(nodes)
+          .onConflictDoUpdate({
+            target: nodesTable.id,
+            set: {
+              name: sql`excluded.name`,
+              groupId: sql`excluded.group_id`,
+              summary: sql`excluded.summary`,
+              labels: sql`excluded.labels`,
+              embedding: sql`excluded.embedding`,
+            },
+          });
       }
 
       if (edges.length > 0) {
-        await tx.insert(edgesTable).values(edges).onConflictDoUpdate({
-          target: edgesTable.id,
-          set: {
-            sourceId: sql`excluded.source_id`,
-            targetId: sql`excluded.target_id`,
-            label: sql`excluded.label`,
-            fact: sql`excluded.fact`,
-            episodes: sql`excluded.episodes`,
-            invalidAt: sql`excluded.invalid_at`,
-            embedding: sql`excluded.embedding`,
-          },
-        });
+        await tx
+          .insert(edgesTable)
+          .values(edges)
+          .onConflictDoUpdate({
+            target: edgesTable.id,
+            set: {
+              sourceId: sql`excluded.source_id`,
+              targetId: sql`excluded.target_id`,
+              label: sql`excluded.label`,
+              fact: sql`excluded.fact`,
+              episodes: sql`excluded.episodes`,
+              invalidAt: sql`excluded.invalid_at`,
+              embedding: sql`excluded.embedding`,
+            },
+          });
       }
     });
   }
@@ -91,7 +97,10 @@ export class MemoryGraph {
       .select()
       .from(nodesTable)
       .where(
-        and(eq(nodesTable.groupId, this.groupId), inArray(nodesTable.name, names))
+        and(
+          eq(nodesTable.groupId, this.groupId),
+          inArray(nodesTable.name, names)
+        )
       );
 
     return rows.map((row) => Node.instance(row as Node.Props));
@@ -200,18 +209,21 @@ export class MemoryGraph {
     const episode = Episode.create(episodeCreateProps);
     const db = createDatabaseConnection();
 
-    await db.insert(episodesTable).values(episode).onConflictDoUpdate({
-      target: episodesTable.id,
-      set: {
-        content: episode.content,
-        createdAt: episode.createdAt,
-        description: episode.description,
-        groupId: episode.groupId,
-        labels: episode.labels,
-        name: episode.name,
-        type: episode.type,
-      },
-    });
+    await db
+      .insert(episodesTable)
+      .values(episode)
+      .onConflictDoUpdate({
+        target: episodesTable.id,
+        set: {
+          content: episode.content,
+          createdAt: episode.createdAt,
+          description: episode.description,
+          groupId: episode.groupId,
+          labels: episode.labels,
+          name: episode.name,
+          type: episode.type,
+        },
+      });
 
     // Process the episode in the background
     (async () => {
@@ -275,14 +287,20 @@ export class MemoryGraph {
 
     return {
       result: [
-        "# Recent conversation history",
-        orderedHistory.map((h) => h.content).join("\n"),
+        "# Relevant entities",
+        "<ENTITIES>",
+        entities.map((entity) => `<ENTITY>\n${entity}\n</ENTITY>`).join("\n"),
+        "</ENTITIES>",
         "",
         "# Relevant facts",
+        "<FACTS>",
         facts.join("\n"),
+        "</FACTS>",
         "",
-        "# Relevant entities",
-        entities.join("\n"),
+        "# Recent conversation history",
+        "<HISTORY>",
+        orderedHistory.map((h) => h.content).join("\n"),
+        "</HISTORY>",
       ].join("\n"),
     };
   }
