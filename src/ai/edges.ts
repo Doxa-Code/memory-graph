@@ -3,6 +3,7 @@ import { AI } from ".";
 import { Edge } from "../edge";
 import type { Episode } from "../episode";
 import { Node } from "../node";
+import { MAX_REFLEXION_ITERATIONS } from "../constants";
 
 type EdgeExtractorInputDTO = {
   episode: Episode;
@@ -12,7 +13,6 @@ type EdgeExtractorInputDTO = {
 
 export class EdgeExtractor<T> extends AI<T> {
   async execute(input: EdgeExtractorInputDTO): Promise<T> {
-    const MAX_REFLEXION_ITERATIONS = 3;
     const edgeTypesContext = [
       {
         factTypeName: "",

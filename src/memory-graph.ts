@@ -122,13 +122,13 @@ export class MemoryGraph {
     const uniqueNodes: Node[] = [];
     const processedNames = new Set<string>();
 
-    for (const extractedNode of extractedNodes) {
+    extractedNodes.map((extractedNode) => {
       if (processedNames.has(extractedNode.name)) {
         const finalNode = uniqueNodes.find(
           (n) => n.name === extractedNode.name
         )!;
         nodeMap.set(extractedNode.id, finalNode);
-        continue;
+        return;
       }
 
       const existingNode = existingNodesMap.get(extractedNode.name);
@@ -146,7 +146,7 @@ export class MemoryGraph {
         uniqueNodes.push(newNode);
       }
       processedNames.add(extractedNode.name);
-    }
+    });
 
     const [extractedEdges, updatedNodes] = await Promise.all([
       EdgeExtractor.instance().execute({
@@ -225,7 +225,6 @@ export class MemoryGraph {
         },
       });
 
-    // Process the episode in the background
     (async () => {
       try {
         await this.processEpisode(episode);

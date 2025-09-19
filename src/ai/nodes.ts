@@ -2,6 +2,7 @@ import z from "zod";
 import { AI } from ".";
 import type { Episode } from "../episode";
 import { Node } from "../node";
+import { MAX_REFLEXION_ITERATIONS } from "../constants";
 
 type NodeExtractorInputDTO = {
   episode: Episode;
@@ -11,7 +12,6 @@ type NodeExtractorInputDTO = {
 export class NodeExtractor<T> extends AI<T> {
   async execute(input: NodeExtractorInputDTO): Promise<T> {
     let refletionCount = 0;
-    const MAX_REFLEXION_ITERATIONS = 3;
     let entitiesMissing = true;
     let customPrompt = "";
     const extractedEntities = z
