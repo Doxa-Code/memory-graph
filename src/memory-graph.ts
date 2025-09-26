@@ -236,7 +236,7 @@ export class MemoryGraph {
 
   async search(query: string, topK = 10) {
     const queryEmbedding = await this.embedTexts([query]);
-    const history = await this.getHistory(3);
+    const history = await this.getHistory(30);
     const orderedHistory = history;
     const db = createDatabaseConnection();
 
