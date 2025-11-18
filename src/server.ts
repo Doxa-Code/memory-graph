@@ -33,7 +33,7 @@ async function getGraph(groupId: string) {
 }
 
 serve({
-  port: 3000,
+  port: 5000,
   async fetch(req) {
     const url = new URL(req.url);
 
@@ -105,4 +105,4 @@ serve({
   },
 });
 
-console.log("🚀 Server rodando em http://localhost:3000");
+console.log("🚀 Server rodando em http://localhost:5000");
