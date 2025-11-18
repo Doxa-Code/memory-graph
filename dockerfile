@@ -15,6 +15,6 @@ COPY --from=builder /app/src/views ./src/views
 
 ENV NODE_ENV=production
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["./server"]

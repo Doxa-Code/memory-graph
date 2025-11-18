@@ -10,7 +10,4 @@ services:
       AZURE_API_VERSION: ${AZURE_API_VERSION}
       AZURE_API_KEY: ${AZURE_API_KEY}
 
-    ports:
-      - "5000:5000"
-
     restart: always
